@@ -5,7 +5,7 @@ const { randomBytes } = require('node:crypto');
 const { createService } = require('./core/service.cjs');
 function startServer({ port = 4317, service = createService() } = {}) {
   const token = randomBytes(32).toString('hex');
-  const allowed = new Set(['index.html', 'styles.css', 'theme.css', 'app.js', 'render.js', 'state.js', 'bridge.js', 'voice.js']);
+  const allowed = new Set(['index.html', 'styles.css', 'theme.css', 'app.js', 'render.js', 'state.js', 'bridge.js', 'voice.js', 'overlay.js', 'overlay.css']);
   const server = http.createServer(async (req, res) => {
     const host = `127.0.0.1:${server.address().port}`;
     const json = (status, data) => { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(data)); };

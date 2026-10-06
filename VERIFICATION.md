@@ -2,7 +2,15 @@
 
 Checked 6 October 2026 in a Linux workspace. This is a source release, not a notarized desktop binary.
 
-## Passed
+## Overlay update
+
+- `npm test`: **21 tests passed**, including four new capture tests for display selection, focus-preserving restoration, native fallback after enumeration failure, actionable denied-permission errors, and retry after failure.
+- Updated browser harness passed: collapsed toolbar; scan → extraction → answer popup; screenshot retention; safe HTML rendering; contextual follow-up; direct interview capture; settings sizing; collapse; no horizontal overflow at 700, 420, and 320 pixels; no uncaught JavaScript errors.
+- axe-core WCAG 2 A/AA check on the populated overlay: **zero detected violations**.
+- Native capture, native fallback, permission prompts, window positioning and share exclusion remain unverified on actual macOS hardware. Browser capture/provider checks use mocks; these do not prove the reported Mac failure is resolved.
+- The previous full-dashboard UI was replaced by the compact overlay. Earlier UI checks below describe the initial version and are retained as history; the current harness covers the overlay.
+
+## Initial version checks
 
 - `npm test`: **17 tests**, covering request validation, assessment isolation, bounded interview/follow-up history, image handling, extraction parsing, provider failures, truncation, cancellation, settings secrecy, loopback origin/token checks, safe Markdown, portable session filtering, FreeFlow-derived silence handling, Groq multipart uploads, and native TTS subprocess semantics.
 - Browser interaction checks: question queues; sample loading; flags; draft editing; reviewed state; outdated-answer warning; persistence after reload; independent workspaces; settings and secret exclusion; AI response/error rendering; contextual follow-ups.

@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('desktop', {
   platform: process.platform,
+  resizeOverlay: height => ipcRenderer.invoke("resize-overlay", height),
+  quit: () => ipcRenderer.invoke("quit"),
+  openCaptureLog: () => ipcRenderer.invoke("capture-log"),
   speak: text => ipcRenderer.invoke('speak', text),
   stopSpeaking: () => ipcRenderer.invoke('stop-speaking'),
   call: (action, payload) => ipcRenderer.invoke('assistant', action, payload),

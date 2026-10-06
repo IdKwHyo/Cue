@@ -14,6 +14,7 @@ const current = () => workspace().items.find(q => q.id === workspace().selected)
 const images = () => attachments.get(current().id) || [];
 
 function notify(message, error = false) {
+  if (error) window.dispatchEvent(new Event("cue-reveal"));
   const box = $(error ? 'error' : 'notice'); box.textContent = message; box.hidden = false;
   if (!error) { clearTimeout(noticeTimeout); noticeTimeout = setTimeout(() => { box.hidden = true; }, 6500); }
 }
@@ -29,6 +30,7 @@ function blocked() {
 }
 function setBusy(value, message = 'Reading your question…') {
   busy = value;
+  if (value) window.dispatchEvent(new Event('cue-reveal'));
   $('busyPanel').hidden = !value; $('busyText').textContent = message;
   $('answerContent').setAttribute('aria-busy', String(value));
   updateControls();
@@ -142,6 +144,7 @@ async function scanNow() {
 }
 
 async function openSettings() {
+  window.dispatchEvent(new Event('cue-reveal'));
   connection = await call('settings');
   $('model').value = connection.model; $('apiKey').value = '';
   $('keyStatus').textContent = connection.hasKey ? 'A key is configured. Leave the field blank to keep it.' : 'No key configured. Get one from Google AI Studio.';

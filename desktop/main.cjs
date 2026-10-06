@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, safeStorage, desktopCapturer, session, systemPreferences, screen, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, safeStorage, desktopCapturer, session, systemPreferences, screen, globalShortcut, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -7,35 +7,38 @@ const { createSpeaker } = require('./speaker.cjs');
 const speaker = createSpeaker();
 app.setName('Cue');
 let win, service;
-let capturing = false;
-async function scanScreen() {
-  if (capturing) throw new Error('A screen capture is already in progress.');
-  capturing = true;
-  const target = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
-  const visible = win?.isVisible();
-  try {
-    if (visible) win.hide();
-    await new Promise(resolve => setTimeout(resolve, 220));
-    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 2880, height: 1800 } });
-    const source = sources.find(s => s.display_id === String(target.id)) || (sources.length === 1 ? sources[0] : null);
-    if (!source || source.thumbnail.isEmpty()) throw new Error('Screen capture unavailable. Allow Cue in System Settings → Privacy & Security → Screen Recording, then reopen Cue.');
-    return { name: source.name, dataUrl: source.thumbnail.toDataURL() };
-  } finally { capturing = false; if (visible && !win.isDestroyed()) win.show(); }
-}
+let scanScreen, logPath;
 const page = pathToFileURL(path.join(__dirname, '../ui/index.html')).href;
 function trusted(event) {
   if (event.sender !== win?.webContents || event.senderFrame?.url !== page) throw new Error('Untrusted request.');
 }
 function createWindow() {
-  win = new BrowserWindow({ width: 1380, height: 900, minWidth: 420, minHeight: 600,
-    title: 'Cue', backgroundColor: '#f5f1ea', icon: path.join(__dirname, '../assets/icon.png'),
+  win = new BrowserWindow({ width: 700, height: 84, minWidth: 320, minHeight: 84, frame: false, transparent: true, resizable: false, alwaysOnTop: true,
+    title: 'Cue', backgroundColor: '#00000000', icon: path.join(__dirname, '../assets/icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
+  win.setContentProtection(true);
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  const area = screen.getPrimaryDisplay().workArea;
+  win.setBounds({ x: area.x + Math.max(0, Math.round((area.width - Math.min(700, area.width)) / 2)), y: area.y + 24, width: Math.min(700, area.width), height: 84 });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', event => event.preventDefault());
   win.on('closed', () => speaker.stop());
   win.loadURL(page);
 }
 app.whenReady().then(async () => {
+  logPath = path.join(app.getPath('userData'), 'capture.log');
+  let logWrites = Promise.resolve();
+  const log = data => {
+    const line = JSON.stringify({ time: new Date().toISOString(), electron: process.versions.electron, os: require('node:os').release(), executable: process.execPath, ...data });
+    console.info('[Cue capture]', line);
+    logWrites = logWrites.then(async () => {
+      try { if ((await fs.stat(logPath)).size > 1024 * 1024) await fs.rename(logPath, logPath + '.previous'); } catch {}
+      await fs.appendFile(logPath, line + '\n', { mode: 0o600 });
+    }).catch(error => console.warn('Could not write capture diagnostics:', error.message));
+  };
+  scanScreen = require('./capture.cjs').createCapture({ capturer: desktopCapturer, screen, windows: () => BrowserWindow.getAllWindows(), permission: () => systemPreferences.getMediaAccessStatus('screen'), log });
+  log({ event: 'startup' });
+
   const configPath = path.join(app.getPath('userData'), 'settings.json');
   const canRemember = safeStorage.isEncryptionAvailable() && (process.platform !== 'linux' || safeStorage.getSelectedStorageBackend() !== 'basic_text');
   let initial = {};
@@ -58,6 +61,14 @@ app.whenReady().then(async () => {
     callback(process.platform === 'darwin' ? await systemPreferences.askForMediaAccess('microphone') : true);
   });
   ipcMain.handle('assistant', async (event, action, payload) => { trusted(event); return service.call(action, payload); });
+  ipcMain.handle('resize-overlay', (event, height) => {
+    trusted(event); if (![84, 700, 760].includes(height)) throw new Error('Invalid overlay size.');
+    const bounds = win.getBounds(), area = screen.getDisplayMatching(bounds).workArea;
+    const h = Math.min(height, area.height);
+    win.setBounds({ ...bounds, y: Math.max(area.y, Math.min(bounds.y, area.y + area.height - h)), height: h });
+  });
+  ipcMain.handle('quit', event => { trusted(event); app.quit(); });
+  ipcMain.handle('capture-log', async event => { trusted(event); const error = await shell.openPath(logPath); if (error) throw new Error(error); });
   ipcMain.handle('scan', event => { trusted(event); return scanScreen(); });
   ipcMain.handle('speak', (event, text) => { trusted(event); if (process.platform !== 'darwin') throw new Error('Native voice is supported on macOS.'); return speaker.speak(text); });
   ipcMain.handle('stop-speaking', event => { trusted(event); return speaker.stop(); });

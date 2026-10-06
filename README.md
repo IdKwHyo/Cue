@@ -2,6 +2,8 @@
 
 A desktop companion for interview conversations and online assessment questions, with one-button screen capture, question detection, editable answers, and voice in both directions.
 
+Cue starts as a small, draggable, always-on-top control bar. **Cue ↓** opens the answer popup; **−** collapses it. Scan opens the popup automatically. Question editing and the detected-question queue sit inside a disclosure, and settings open only when requested. There is no dashboard.
+
 The interface uses warm ivory, tobacco brown, and restrained editorial typography. It is an original design, inspired by the quiet polish requested for this project.
 
 ## Run on your Mac
@@ -37,6 +39,14 @@ Cue captures the display under your pointer, briefly hiding its own window so th
 
 The first request needs a configured key. If you scan before setup, the image is retained in the current question while you add the key. You can then choose Get answer or scan again to create a question queue.
 
+## Screen sharing and capture troubleshooting
+
+Desktop windows enable Electron's `setContentProtection(true)` by default. Windows 10 version 2004 and later can exclude the window from captures; older Windows versions may show a black rectangle. On macOS, newer sharing apps using ScreenCaptureKit can capture protected windows. Linux does not support Electron capture protection. **This is not a guarantee of invisibility.** Check the actual outgoing share preview in your sharing application. See [Electron's documentation](https://www.electronjs.org/docs/latest/api/browser-window#winsetcontentprotectionenable).
+
+If `Failed to get sources` occurs, Cue records permission status, OS/Electron version, executable path, display mapping, and the original exception in `capture.log` under Electron's user-data directory. **Settings → Open capture diagnostics** opens that file. Diagnostics contain no screenshots, audio, API keys, or question text. Logs rotate at approximately 1 MB.
+
+On macOS, if Electron capture fails and permission is not denied/restricted, Cue attempts the system `/usr/sbin/screencapture` tool for the selected display rectangle, then deletes its temporary PNG. This uses the same OS permission controls. If both methods fail, the popup gives permission and restart instructions plus the underlying reason. A successful fallback is also recorded. Real-device verification is still needed for your Mac.
+
 ## Questions and conversations
 
 - Separate assessment and interview workspaces retain their own questions and drafts.
@@ -45,8 +55,8 @@ The first request needs a configured key. If you scan before setup, the image is
 - Use **Keep the thought going** to ask a follow-up within the same question. Each question retains its own follow-up thread.
 - Interview prompts receive the previous eight conversational turns. Assessment questions remain isolated, except for explicit follow-ups within that question.
 - Editing a question marks its previous answer as outdated.
-- Flag questions, mark them reviewed, copy answers, or use an answer as your editable draft.
-- **⌘/Ctrl+Enter** generates an answer. The practice timer runs for 30 minutes and can be paused.
+- Copy answers, edit questions and drafts, or request a draft review inside **Question & detected questions**.
+- **⌘/Ctrl+Enter** generates an answer. Context and session import/export are in Settings → **Context & saved sessions**.
 - The sample session is explicitly labeled; its answer is a local fixture, not a live AI response.
 
 Answers complete before display in this version; token-by-token streaming is not implemented. Screen extraction can misread content. Check labels, units, diagrams, and words such as NOT and EXCEPT before relying on the result.
@@ -55,7 +65,7 @@ Answers complete before display in this version; token-by-token streaming is not
 
 [FreeFlow](https://github.com/zachlatta/freeflow) is a macOS **speech-to-text** app, not a text-to-speech engine. Cue adapts its Groq/Whisper request flow and conservative silence-hallucination filter into JavaScript. Attribution and the MIT notice are in `THIRD_PARTY.md` and `licenses/FreeFlow-LICENSE.txt`.
 
-Choose **Record question**, speak, then **Stop recording**. The transcript is inserted into the question so you can check it before requesting an answer. Recordings automatically stop at 90 seconds. You can choose Whisper Large V3 Turbo or Whisper Large V3 and supply custom vocabulary for names and terminology. Spoken languages are preserved rather than forced to the answer language.
+Click **Mic** on the bar, speak, then **Stop**. Open **Question & detected questions** to check the transcript. The transcript is inserted into the question so you can check it before requesting an answer. Recordings automatically stop at 90 seconds. You can choose Whisper Large V3 Turbo or Whisper Large V3 and supply custom vocabulary for names and terminology. Spoken languages are preserved rather than forced to the answer language.
 
 Cue does not bundle FreeFlow's Swift application or its global Fn-key/accessibility hooks. It implements the selected transcription behavior within Cue. If you already use the actual FreeFlow app, its dictation can also type into Cue's question or draft fields normally. Cue does not record other applications' system audio or the remote participant's audio directly.
 
@@ -91,7 +101,7 @@ npm run build:mac
 
 The macOS command targets Apple Silicon. For Intel builds, run `npx electron-builder --mac --x64` on a suitable build machine. Windows and Linux targets are also configured; platform-specific builds and capture behavior require testing on those systems. Signing/notarization require your own signing credentials and are not configured here.
 
-See `VERIFICATION.md` for the exact checks performed and remaining device/live-provider checks. UI screenshots in `docs/` show sample content only.
+See `VERIFICATION.md` for the exact checks performed and remaining device/live-provider checks. The screenshots in `docs/` show the initial dashboard and are retained as historical previews; the current app uses the compact overlay. Run the browser harness to create current screenshots in `test-results/`.
 
 ## Implementation map
 
