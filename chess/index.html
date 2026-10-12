@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'">
+<title>Cue Chess</title><link rel="stylesheet" href="style.css"></head>
+<body><main><header><strong>cue<span class="dot">.</span> chess</strong><span id="status">LOCAL ANALYSIS</span><button id="close" aria-label="Quit">×</button></header>
+<section><div id="move">Ready to analyze</div><div id="detail">Enter a FEN position to begin.</div></section>
+<form id="form"><input id="fen" aria-label="FEN position" spellcheck="false" value="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"><button type="submit">Analyze</button></form>
+<footer><button id="scan">Capture screen</button><span id="captureNote">Capture preview only · automatic board recognition coming next</span></footer>
+<img id="preview" alt="Captured chess screen" hidden></main><script src="ui.js"></script></body></html>
